@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import kotlin.time.measureTimedValue
 
 @Disabled("Temporarily disabled")
@@ -30,7 +31,7 @@ class TestReferralHelperTest : IntegrationTestBase() {
   @Test
   fun `test Referral creation with 'Awaiting allocation' status`() {
     val referralStatusDescription =
-      referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      referralStatusDescriptionRepository.findByDescription(ReferralStatusType.PROGRAMME_COMPLETE.description)!!
     val referral = testReferralHelper.createReferralAndUpdateStatus(referralStatusDescription)
     assertThat(referral.statusHistories.first().referralStatusDescription.description)
       .isEqualTo("Programme complete")

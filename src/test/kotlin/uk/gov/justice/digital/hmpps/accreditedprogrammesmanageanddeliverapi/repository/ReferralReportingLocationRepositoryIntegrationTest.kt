@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
 import java.time.LocalDateTime
 
 class ReferralReportingLocationRepositoryIntegrationTest : IntegrationTestBase() {
@@ -45,7 +46,7 @@ class ReferralReportingLocationRepositoryIntegrationTest : IntegrationTestBase()
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
 
     testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)

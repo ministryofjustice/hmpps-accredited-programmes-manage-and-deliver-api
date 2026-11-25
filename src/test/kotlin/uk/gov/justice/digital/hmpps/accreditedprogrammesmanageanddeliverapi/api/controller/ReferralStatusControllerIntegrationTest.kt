@@ -15,6 +15,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_PROGRAMME
 import java.time.LocalDateTime
 
 class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
@@ -45,7 +47,7 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+          referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -85,7 +87,7 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+          referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -135,7 +137,7 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
       val referralEntity = ReferralEntityFactory().produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -164,13 +166,13 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+          referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
         )
       val latestStatus = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+          referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 

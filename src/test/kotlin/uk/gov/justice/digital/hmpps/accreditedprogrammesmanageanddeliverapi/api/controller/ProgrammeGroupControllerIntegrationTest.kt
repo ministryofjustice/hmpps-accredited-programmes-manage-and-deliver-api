@@ -107,6 +107,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
@@ -220,11 +224,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       ),
     )
     // Update all referrals to 'Awaiting Allocation status'
-    val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
     referrals.forEach {
       referralService.updateStatus(
         it,
-        status.id,
+        status?.id!!,
         createdBy = "AUTH_USER",
       )
     }
@@ -592,8 +596,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           ),
         ),
       )
-      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-      referralsWithCommaPdu.forEach { referralService.updateStatus(it, status.id, createdBy = "AUTH_USER") }
+      val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
+      referralsWithCommaPdu.forEach { referralService.updateStatus(it, status?.id!!, createdBy = "AUTH_USER") }
       val group = ProgrammeGroupFactory().withCode("TEST006C").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
@@ -634,8 +638,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           ),
         ),
       )
-      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-      referralsWithCommaReportingTeam.forEach { referralService.updateStatus(it, status.id, createdBy = "AUTH_USER") }
+      val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
+      referralsWithCommaReportingTeam.forEach {
+        referralService.updateStatus(
+          it,
+          status?.id!!,
+          createdBy = "AUTH_USER",
+        )
+      }
       val group = ProgrammeGroupFactory().withCode("TEST006D").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
@@ -754,9 +764,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Set ALL referrals to "Awaiting allocation" — both regions
-      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
       (userRegionReferrals + otherRegionReferrals).forEach {
-        referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
+        referralService.updateStatus(it, status?.id!!, createdBy = "AUTH_USER")
       }
 
       val group = testGroupHelper.createGroup(
@@ -798,9 +808,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         regionName = "Greater Manchester",
       )
 
-      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
       listOf(userRegionReferral, otherRegionReferral).forEach {
-        referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
+        referralService.updateStatus(it, status?.id!!, createdBy = "AUTH_USER")
       }
 
       val group =
@@ -901,11 +911,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral3 = testDataGenerator.createReferral(personName = "Person3", crn = "X123458")
       val referral4 = testDataGenerator.createReferral(personName = "Person4", crn = "X123459")
 
-      val programmeCompleteReferralStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val programmeCompleteReferralStatus =
+        referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral3,
-          programmeCompleteReferralStatus,
+          programmeCompleteReferralStatus!!,
         ),
       )
 
@@ -920,11 +931,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Set up PPR for group4 (Started group) but one member has not attended
       setupPostProgrammeReviewForGroup(group4, listOf(groupMembership1, groupMembership2), attended = false)
 
-      val onProgrammeReferralStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+      val onProgrammeReferralStatus = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral1,
-          onProgrammeReferralStatus,
+          onProgrammeReferralStatus!!,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
@@ -999,18 +1010,19 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       setupPostProgrammeReviewForGroup(group5, listOf(group5Membership), attended = true)
       setupPostProgrammeReviewForGroup(group3, listOf(group3Membership), attended = true)
 
-      val programmeCompleteReferralStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val onProgrammeReferralStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+      val programmeCompleteReferralStatus =
+        referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)
+      val onProgrammeReferralStatus = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral1,
-          onProgrammeReferralStatus,
+          onProgrammeReferralStatus!!,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral1,
-          programmeCompleteReferralStatus,
+          programmeCompleteReferralStatus!!,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
@@ -1073,19 +1085,20 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val incompleteGroupMembership =
         testDataGenerator.allocateReferralsToGroup(listOf(onProgrammeReferral), groupPartialComplete).first()
 
-      val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val onProgrammeStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+      val programmeCompleteStatus =
+        referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)
+      val onProgrammeStatus = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
 
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           programmeCompleteReferral,
-          programmeCompleteStatus,
+          programmeCompleteStatus!!,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           onProgrammeReferral,
-          onProgrammeStatus,
+          onProgrammeStatus!!,
         ),
       )
 
@@ -1284,7 +1297,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         testDataGenerator.creatReferralStatusHistory(
           ReferralStatusHistoryEntityFactory().produce(
             referral,
-            referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription(),
+            referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!,
           ),
         )
         setupPostProgrammeReviewForGroup(group, listOf(membership))
@@ -1718,7 +1731,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup throws an error if referral is in a closed state`() {
       val group = testGroupHelper.createGroup()
       val referral =
-        testReferralHelper.createReferralAndUpdateStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
+        testReferralHelper.createReferralAndUpdateStatus(
+          referralStatusDescriptionRepository.findByDescription(
+            PROGRAMME_COMPLETE.description,
+          ),
+        )
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -1734,7 +1751,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup throws an error if referral already allocated to a group`() {
       val group = testGroupHelper.createGroup()
       val referral =
-        testReferralHelper.createReferralAndUpdateStatus(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
+        testReferralHelper.createReferralAndUpdateStatus(
+          referralStatusDescriptionRepository.findByDescription(
+            AWAITING_ALLOCATION.description,
+          ),
+        )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -1760,7 +1781,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val createdReferral = testReferralHelper.createReferral(sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT)
       val referral = testReferralHelper.updateReferralStatus(
         createdReferral,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
       )
       nDeliusApiStubs.stubNotFoundRequirementManagerResponse(
         crn = referral.crn,
@@ -1787,7 +1808,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val createdReferral = testReferralHelper.createReferral(sourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION)
       val referral = testReferralHelper.updateReferralStatus(
         createdReferral,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
       )
       nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(
         crn = referral.crn,
@@ -2066,7 +2087,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
         personName = "Alex River",
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -2081,7 +2102,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val removeFromGroupRequest = RemoveFromGroupRequest(
-        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        referralStatusDescriptionId = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)?.id!!,
         additionalDetails = "The additional details for the removal",
       )
 
@@ -2148,7 +2169,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup(groupCode)
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description),
         personName = "Alex River",
       )
 
@@ -2164,7 +2185,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val statusHistory =
         ReferralStatusHistoryEntity(
           referral = referral,
-          referralStatusDescription = referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+          referralStatusDescription = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!,
           additionalDetails = "additional details",
           createdBy = "createdBy",
         )
@@ -2173,7 +2194,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       referralRepository.save(referral)
 
       val removeFromGroupRequest = RemoveFromGroupRequest(
-        referralStatusDescriptionId = referralStatusDescriptionRepository.getReturnToCourtStatusDescription().id,
+        referralStatusDescriptionId = referralStatusDescriptionRepository.findByDescription(ReferralStatusType.RETURN_TO_COURT.description)?.id!!,
         additionalDetails = "The additional details for the removal",
       )
 
@@ -2238,7 +2259,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
@@ -2247,7 +2268,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testGroupHelper.allocateToGroup(group, referral)
 
       val removeFromGroupRequest = RemoveFromGroupRequest(
-        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        referralStatusDescriptionId = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)?.id!!,
         additionalDetails = "The additional details for the removal",
       )
 
@@ -2303,7 +2324,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
@@ -2312,7 +2333,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testGroupHelper.allocateToGroup(group, referral)
 
       val removeFromGroupRequest = RemoveFromGroupRequest(
-        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        referralStatusDescriptionId = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)?.id!!,
         additionalDetails = "The additional details for the removal",
       )
 
@@ -2373,10 +2394,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
 
       val referralToRemove = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
       )
       val referralNotToRemove = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
@@ -2386,7 +2407,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testGroupHelper.allocateToGroup(group, referralNotToRemove)
 
       val removeFromGroupRequest = RemoveFromGroupRequest(
-        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        referralStatusDescriptionId = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)?.id!!,
         additionalDetails = "The additional details for the removal",
       )
 
@@ -2455,10 +2476,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
 
       val referralToRemove = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
       )
       val referralToKeep = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
@@ -2468,7 +2489,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testGroupHelper.allocateToGroup(group, referralToKeep)
 
       val removeFromGroupRequest = RemoveFromGroupRequest(
-        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        referralStatusDescriptionId = referralStatusDescriptionRepository.findByDescription(ReferralStatusType.AWAITING_ALLOCATION.description)?.id!!,
         additionalDetails = "The additional details for the removal",
       )
 
@@ -4726,7 +4747,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferralAndUpdateStatus(
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description),
       )
 
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()

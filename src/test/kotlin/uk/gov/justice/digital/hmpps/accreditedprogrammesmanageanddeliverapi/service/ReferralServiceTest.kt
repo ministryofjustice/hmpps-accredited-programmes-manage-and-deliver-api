@@ -55,6 +55,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.time.LocalDateTime
@@ -1065,7 +1066,7 @@ class ReferralServiceTest {
     every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
-    every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
+    every { referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description) } returns awaitingAssessmentStatusDescription
     val savedReferral = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
     every { referralRepository.save(any()) } returns savedReferral
     every { referralStatusHistoryRepository.save(any()) } returns mockk(relaxed = true)
@@ -1110,7 +1111,7 @@ class ReferralServiceTest {
     every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
-    every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
+    every { referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description) } returns awaitingAssessmentStatusDescription
     val savedReferral = ReferralEntityFactory().withId(referralId).produce()
     every { referralRepository.save(any()) } returns savedReferral
     every { referralStatusHistoryRepository.save(any()) } returns mockk(relaxed = true)

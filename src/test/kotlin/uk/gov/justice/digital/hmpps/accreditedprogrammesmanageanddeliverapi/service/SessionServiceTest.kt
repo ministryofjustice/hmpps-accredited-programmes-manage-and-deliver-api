@@ -57,6 +57,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
@@ -88,6 +89,8 @@ class SessionServiceTest {
   private val userAccessService = mockk<UserAccessService>()
   private val nDeliusAppointmentRepository = mockk<NDeliusAppointmentRepository>()
   private val programmeGroupRepository = mockk<ProgrammeGroupRepository>()
+  private val referralStatusDescriptionRepository = mockk<ReferralStatusDescriptionRepository>()
+  private val referralService = mockk<ReferralService>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
@@ -112,6 +115,8 @@ class SessionServiceTest {
         userAccessService = userAccessService,
         nDeliusAppointmentRepository,
         programmeGroupRepository,
+        referralService = referralService,
+        referralStatusDescriptionRepository = referralStatusDescriptionRepository,
       )
 
     sessionAttendanceTypeEntities =
@@ -3223,6 +3228,8 @@ class SessionServiceTest {
       userAccessService = userAccessService,
       nDeliusAppointmentRepository,
       programmeGroupRepository,
+      referralService = referralService,
+      referralStatusDescriptionRepository = referralStatusDescriptionRepository,
     )
     val username = "user1"
     val personName = "John Smith"
@@ -3317,6 +3324,8 @@ class SessionServiceTest {
       userAccessService = userAccessService,
       nDeliusAppointmentRepository,
       programmeGroupRepository,
+      referralService = referralService,
+      referralStatusDescriptionRepository = referralStatusDescriptionRepository,
     )
     val username = "user1"
     val personName = "John Smith"

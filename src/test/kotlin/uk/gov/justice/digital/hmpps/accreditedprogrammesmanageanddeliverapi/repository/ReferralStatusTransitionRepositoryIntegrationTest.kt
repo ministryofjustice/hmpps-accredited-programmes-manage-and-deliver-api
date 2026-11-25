@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_PROGRAMME
 
 class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() {
 
@@ -86,7 +89,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Test
   @Transactional
   fun `findByFromStatusId returns all transitions for a given status`() {
-    val awaitingAssessment = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+    val awaitingAssessment = referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!
     val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAssessment.id)
 
     assertThat(transitions).isNotEmpty
@@ -100,7 +103,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Transactional
   fun `should return all appropriate transitions for Awaiting allocation`() {
     // Given
-    val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocation = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
 
     // When
     val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAllocation.id)
@@ -125,7 +128,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Test
   @Transactional
   fun `should return statuses ordered by priority`() {
-    val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+    val onProgramme = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!
 
     val transitions = referralStatusTransitionRepository
       .findByFromStatusIdAndIsVisibleTrueOrderByPriorityAsc(onProgramme.id)

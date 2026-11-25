@@ -6,41 +6,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.util.UUID
 
 interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDescriptionEntity, UUID> {
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Awaiting assessment'")
-  fun getAwaitingAssessmentStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Awaiting allocation'")
-  fun getAwaitingAllocationStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Suitable but not ready'")
-  fun getSuitableButNotReadyStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Deprioritised'")
-  fun getDeprioritisedStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Recall'")
-  fun getRecallStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Return to court'")
-  fun getReturnToCourtStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Scheduled'")
-  fun getScheduledStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'On programme'")
-  fun getOnProgrammeStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Programme complete'")
-  fun getProgrammeCompleteStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Breach'")
-  fun getBreachStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'On hold'")
-  fun getOnHoldStatusDescription(): ReferralStatusDescriptionEntity
-
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Withdrawn'")
-  fun getWithdrawnStatusDescription(): ReferralStatusDescriptionEntity
 
   /**
    * Right now, all ReferralStatusDescriptions are Reference data which should be created or modified only
@@ -65,4 +30,6 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
     """,
   )
   fun findMostRecentStatusByReferralId(referralId: UUID): ReferralStatusDescriptionEntity?
+
+  fun findByDescription(description: String): ReferralStatusDescriptionEntity?
 }

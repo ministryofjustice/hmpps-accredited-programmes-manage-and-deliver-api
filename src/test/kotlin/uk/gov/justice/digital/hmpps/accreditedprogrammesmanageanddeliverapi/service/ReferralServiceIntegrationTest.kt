@@ -53,6 +53,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.Duration.ofMillis
 import java.time.LocalDate
@@ -150,7 +155,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -265,7 +270,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -309,7 +314,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -334,7 +339,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `getStatusHistoryIntegration should return status records when they exist`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val awaitingAllocation = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
 
@@ -369,7 +374,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `updateStatus should create a new entry in the ReferralStatusHistory log and publish event to hmppsDomainEvent topic`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+      val onProgrammeStatusDescriptionId =
+        referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)?.id!!
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -423,7 +429,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "SYSTEM", "")
 
       val programmeCompleteStatusDescriptionId =
-        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+        referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)?.id!!
       val referralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
       val historiesBefore = referralWithGroup.statusHistories.size
 
@@ -457,7 +463,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "SYSTEM", "")
 
       val programmeCompleteStatusDescriptionId =
-        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+        referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)?.id!!
       val referralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
       val historiesBefore = referralWithGroup.statusHistories.size
 
@@ -513,7 +519,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
 
-      val recallStatusDescription = referralStatusDescriptionRepository.getRecallStatusDescription()
+      val recallStatusDescription =
+        referralStatusDescriptionRepository.findByDescription(ReferralStatusType.RECALL.description)!!
 
       val theReferral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
 
@@ -544,8 +551,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       // Given
       val theCrnNumber = randomUppercaseString()
       val programmeCompleteStatusDescriptionId =
-        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
-      val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+        referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)?.id!!
+      val onProgrammeStatusDescriptionId =
+        referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)?.id!!
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -613,8 +621,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       // Given
       val theCrnNumber = randomUppercaseString()
       val programmeCompleteStatusDescriptionId =
-        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
-      val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+        referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)?.id!!
+      val onProgrammeStatusDescriptionId =
+        referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)?.id!!
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1122,7 +1131,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
 
@@ -1154,7 +1163,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
 
@@ -1205,7 +1214,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
 
@@ -1240,7 +1249,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
 

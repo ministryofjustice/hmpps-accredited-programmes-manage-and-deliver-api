@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -46,7 +47,7 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+          referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
       val motivationBackgroundAndNonAssociations =
@@ -110,7 +111,7 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
       )
       val motivationBackgroundAndNonAssociations =
         ReferralMotivationBackgroundAndNonAssociationsFactory().withReferral(referralEntity).produce()
@@ -156,7 +157,7 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
 

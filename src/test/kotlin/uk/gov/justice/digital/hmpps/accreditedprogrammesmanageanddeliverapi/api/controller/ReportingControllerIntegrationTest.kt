@@ -37,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReportingGroupSizeTestDataHelper
 import java.time.Instant
 import java.time.LocalDate
@@ -267,7 +268,7 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
       referralStatusHistoryRepository.save(
         ReferralStatusHistoryEntityFactory()
           .withCreatedAt(LocalDateTime.parse("2026-05-20T09:00:00"))
-          .produce(referral, referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()),
+          .produce(referral, referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!),
       )
 
       val group = programmeGroupRepository.save(

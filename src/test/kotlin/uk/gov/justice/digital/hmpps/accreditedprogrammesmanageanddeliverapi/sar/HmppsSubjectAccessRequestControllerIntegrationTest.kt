@@ -29,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.kotlin.sar.HmppsSubjectAccessRequestContent
@@ -84,7 +85,7 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
       ),
     )
     // Update all referrals to 'Awaiting Allocation status'
-    val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
     referrals.forEach {
       referralService.updateStatus(
         it,
