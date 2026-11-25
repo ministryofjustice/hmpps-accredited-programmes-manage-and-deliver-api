@@ -21,6 +21,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.PROGRAMME_COMPLETE
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.jvm.java
@@ -131,7 +133,7 @@ fun isLatestReferralStatusProgrammeComplete(
   programmeCompleteStatusExistsSubquery.where(
     cb.equal(statusHistoryRoot.get<ReferralEntity>("referral"), referralJoin),
     cb.equal(statusHistoryRoot.get<LocalDateTime>("createdAt"), latestStatusCreatedAtSubquery),
-    cb.equal(referralStatusDescriptionJoin.get<String>("description"), "Programme complete"),
+    cb.equal(referralStatusDescriptionJoin.get<ReferralStatusType>("referralStatusType"), PROGRAMME_COMPLETE),
   )
 
   return cb.exists(programmeCompleteStatusExistsSubquery)

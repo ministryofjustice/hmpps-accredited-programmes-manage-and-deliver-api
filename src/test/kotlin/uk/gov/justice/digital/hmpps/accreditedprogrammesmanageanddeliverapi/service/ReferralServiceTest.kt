@@ -41,6 +41,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.PROGRAMME_COMPLETE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.SCHEDULED
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.WITHDRAWN
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
@@ -742,9 +747,9 @@ class ReferralServiceTest {
     // Given
     val referralId = UUID.randomUUID()
     val referral = ReferralEntityFactory().withId(referralId).produce()
-    val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
+    val currentStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(SCHEDULED).produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
-    val incomingStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status B").produce()
+    val incomingStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(ON_PROGRAMME).produce()
 
     every { referralStatusDescriptionRepository.findByIdOrNull(incomingStatus.id) } returns incomingStatus
     every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentHistory
@@ -767,9 +772,9 @@ class ReferralServiceTest {
     // Given
     val referralId = UUID.randomUUID()
     val referral = ReferralEntityFactory().withId(referralId).withPersonName("John Doe").produce()
-    val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
+    val currentStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(SCHEDULED).produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
-    val incomingStatus = ReferralStatusDescriptionEntityFactory().withDescription("Withdrawn").produce()
+    val incomingStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(WITHDRAWN).produce()
     val transition = ReferralStatusTransitionEntityFactory()
       .withFromStatus(currentStatus)
       .withToStatus(incomingStatus)
@@ -868,9 +873,9 @@ class ReferralServiceTest {
     // Given
     val referralId = UUID.randomUUID()
     val referral = ReferralEntityFactory().withId(referralId).produce()
-    val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
+    val currentStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(SCHEDULED).produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
-    val incomingStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status B").produce()
+    val incomingStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(ON_PROGRAMME).produce()
     val transition = ReferralStatusTransitionEntityFactory()
       .withFromStatus(currentStatus)
       .withToStatus(incomingStatus)
@@ -902,7 +907,7 @@ class ReferralServiceTest {
 
     // Then
     assertThat(response.referralStatusHistory).isEqualTo(savedHistory.toApi())
-    assertThat(response.message).isEqualTo("${referral.personName}'s referral status is now Status B.")
+    assertThat(response.message).isEqualTo("${referral.personName}'s referral status is now ${ON_PROGRAMME.description}.")
 
     verify {
       referralStatusHistoryRepository.save(
@@ -932,7 +937,7 @@ class ReferralServiceTest {
     // Given
     val referral = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
     val referralId = referral.id!!
-    val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
+    val currentStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(SCHEDULED).produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
     val user = UserFactory().produce()
 
@@ -962,9 +967,9 @@ class ReferralServiceTest {
     // Given
     val referralId = UUID.randomUUID()
     val referral = ReferralEntityFactory().withId(referralId).withPersonName("John Doe").produce()
-    val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
+    val currentStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(SCHEDULED).produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
-    val incomingStatus = ReferralStatusDescriptionEntityFactory().withDescription("Programme complete").produce()
+    val incomingStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(PROGRAMME_COMPLETE).produce()
     val transition = ReferralStatusTransitionEntityFactory()
       .withFromStatus(currentStatus)
       .withToStatus(incomingStatus)
@@ -1009,7 +1014,7 @@ class ReferralServiceTest {
     val referral = ReferralEntityFactory().withId(referralId).produce()
     val currentStatus = ReferralStatusDescriptionEntityFactory().produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
-    val incomingStatus = ReferralStatusDescriptionEntityFactory().withDescription("Programme complete").produce()
+    val incomingStatus = ReferralStatusDescriptionEntityFactory().withReferralStatusType(PROGRAMME_COMPLETE).produce()
     val transition = ReferralStatusTransitionEntityFactory()
       .withFromStatus(currentStatus)
       .withToStatus(incomingStatus)
@@ -1065,7 +1070,7 @@ class ReferralServiceTest {
     every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
-    every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
+    every { referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT) } returns awaitingAssessmentStatusDescription
     val savedReferral = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
     every { referralRepository.save(any()) } returns savedReferral
     every { referralStatusHistoryRepository.save(any()) } returns mockk(relaxed = true)
@@ -1110,7 +1115,7 @@ class ReferralServiceTest {
     every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
-    every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
+    every { referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT) } returns awaitingAssessmentStatusDescription
     val savedReferral = ReferralEntityFactory().withId(referralId).produce()
     every { referralRepository.save(any()) } returns savedReferral
     every { referralStatusHistoryRepository.save(any()) } returns mockk(relaxed = true)
@@ -1551,7 +1556,7 @@ class ReferralServiceTest {
       // Given
       val crn = "X123456"
       val statusDescription = ReferralStatusDescriptionEntityFactory()
-        .withDescription("Awaiting assessment")
+        .withReferralStatusType(AWAITING_ASSESSMENT)
         .produce()
 
       val olderId = UUID.randomUUID()
@@ -1604,7 +1609,7 @@ class ReferralServiceTest {
       val crn = "X123456"
       val referralId = UUID.randomUUID()
       val statusDescription = ReferralStatusDescriptionEntityFactory()
-        .withDescription("Awaiting assessment")
+        .withReferralStatusType(AWAITING_ASSESSMENT)
         .produce()
       val referral = ReferralEntityFactory()
         .withId(referralId)

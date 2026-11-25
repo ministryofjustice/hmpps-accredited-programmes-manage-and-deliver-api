@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.Duration.ofMillis
@@ -40,9 +41,9 @@ class ReferralProgrammeStartedEventTest(
     nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocationStatus = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
     var referral = testReferralHelper.createReferral()
-    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus)
+    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus!!)
 
     val programmeGroup = testGroupHelper.createGroup(earliestStartDate = LocalDate.now())
     referral = testGroupHelper.allocateToGroup(programmeGroup, referral)
@@ -84,13 +85,15 @@ class ReferralProgrammeStartedEventTest(
       expectedResponseStatus = HttpStatus.CREATED.value(),
     )
 
-    // Wait for message to be processed
-    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it!! >= 1 }
-    val message = with(domainEventsQueueConfig) {
-      objectMapper.readValue<SQSMessage>(interventionsQueue.receiveMessageOnQueue().body())
+    // Recording attendance also publishes a referral status update, so check both events.
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it!! >= 2 }
+    val eventTypes = with(domainEventsQueueConfig) {
+      List(2) {
+        objectMapper.readValue<SQSMessage>(interventionsQueue.receiveMessageOnQueue().body()).eventType
+      }
     }
 
-    assertThat(message.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_STARTED.value)
+    assertThat(eventTypes).contains(HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_STARTED.value)
 
     val response = performRequestAndExpectOk(
       httpMethod = HttpMethod.GET,
@@ -110,9 +113,9 @@ class ReferralProgrammeStartedEventTest(
     nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocationStatus = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
     var referral = testReferralHelper.createReferral()
-    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus)
+    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus!!)
 
     val programmeGroup = testGroupHelper.createGroup(earliestStartDate = LocalDate.now())
     referral = testGroupHelper.allocateToGroup(programmeGroup, referral)

@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -118,7 +119,7 @@ class TestDataGenerator {
 
     val statusHistory = referralStatusHistoryEntity ?: ReferralStatusHistoryEntityFactory().produce(
       referral,
-      referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
     )
 
     entityManager.persist(referral)

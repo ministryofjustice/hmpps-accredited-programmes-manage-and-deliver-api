@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model
 
 enum class ReferralStatusType(val description: String) {
   AWAITING_ASSESSMENT("Awaiting assessment"),
@@ -9,8 +9,9 @@ enum class ReferralStatusType(val description: String) {
   RETURN_TO_COURT("Return to court"),
   SCHEDULED("Scheduled"),
   ON_PROGRAMME("On programme"),
+  ON_HOLD("On hold"),
   PROGRAMME_COMPLETE("Programme complete"),
-  BREACH_NON_ATTENDANCE("Breach (non-attendance)"),
+  BREACH("Breach"),
   DEFERRED("Deferred"),
   WITHDRAWN("Withdrawn"),
 }

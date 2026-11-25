@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.Duration.ofMillis
 
@@ -39,7 +40,8 @@ class ReferralStatusEventTest : IntegrationTestBase() {
   @Test
   fun `publish a status change event and retrieve the details via rest endpoint`() {
     // Creates referral and moves to awaiting allocation status
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocationStatus =
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     val referral = testReferralHelper.createReferral()
     testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus, "TEST ADDITIONAL DETAILS")
 

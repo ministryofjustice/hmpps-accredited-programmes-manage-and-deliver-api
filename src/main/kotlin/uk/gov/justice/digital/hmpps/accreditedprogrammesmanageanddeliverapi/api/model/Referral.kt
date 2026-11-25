@@ -67,7 +67,8 @@ fun ReferralEntity.toApi(isLimitedAccessOffender: Boolean? = false, isExcluded: 
   personName = personName,
   crn = crn,
   createdAt = createdAt,
-  status = statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description ?: "Unknown",
+  status = statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.referralStatusType?.description
+    ?: "Unknown",
   cohort = referralCohortHistories.maxByOrNull { it.createdAt }?.cohort ?: OffenceCohort.GENERAL_OFFENCE,
   isLimitedAccessOffender = isLimitedAccessOffender,
   isExcluded = isExcluded,
