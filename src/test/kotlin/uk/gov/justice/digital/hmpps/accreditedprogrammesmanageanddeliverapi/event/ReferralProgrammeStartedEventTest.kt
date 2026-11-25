@@ -85,13 +85,15 @@ class ReferralProgrammeStartedEventTest(
       expectedResponseStatus = HttpStatus.CREATED.value(),
     )
 
-    // Wait for message to be processed
-    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it!! >= 1 }
-    val message = with(domainEventsQueueConfig) {
-      objectMapper.readValue<SQSMessage>(interventionsQueue.receiveMessageOnQueue().body())
+    // Recording attendance also publishes a referral status update, so check both events.
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it!! >= 2 }
+    val eventTypes = with(domainEventsQueueConfig) {
+      List(2) {
+        objectMapper.readValue<SQSMessage>(interventionsQueue.receiveMessageOnQueue().body()).eventType
+      }
     }
 
-    assertThat(message.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_STARTED.value)
+    assertThat(eventTypes).contains(HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_STARTED.value)
 
     val response = performRequestAndExpectOk(
       httpMethod = HttpMethod.GET,
