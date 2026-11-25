@@ -2,13 +2,6 @@ info.app:
   name: HMPPS Accredited Programmes Manage And Deliver Api
   version: 1.0
 
-springdoc:
-  swagger-ui:
-    # Must match the org.webjars:swagger-ui version constraint in build.gradle.kts.
-    # springdoc's bundled default (5.32.14) is stale and is used as a fallback if the
-    # webjar version can't be resolved dynamically, which 404s against the actual webjar.
-    version: 5.34.1
-
 sentry:
   # Run Sentry's exception resolver first so exceptions handled by @RestControllerAdvice are still captured,
   # removing the need for manual Sentry.captureException calls in exception handlers.
@@ -29,6 +22,18 @@ app:
       cron: "${REFERRAL_DETAILS_UPDATED_CRON:0 0 1 * * *}"  # default every day at 1 AM
       chunk-size: 100  # process referral records in chunks
       cutoff: 432000 # before updatedAt in seconds
+      shedlock:
+        lock-most: PT2H # lock for max 2 hours
+        lock-least: PT1H # lock at least for 1 hour
+    referral-names-updated:
+      cron: "${REFERRAL_NAMES_UPDATED_CRON:0 0 2 * * *}"  # default every day at 2 AM
+      chunk-size: 100  # process referral records in chunks
+      shedlock:
+        lock-most: PT2H # lock for max 2 hours
+        lock-least: PT1H # lock at least for 1 hour
+    facilitator-names-updated:
+      cron: "${FACILITATOR_NAMES_UPDATED_CRON:0 0 3 * * *}"  # default every day at 3 AM
+      chunk-size: 100  # process facilitator records in chunks
       shedlock:
         lock-most: PT2H # lock for max 2 hours
         lock-least: PT1H # lock at least for 1 hour
@@ -59,6 +64,9 @@ spring:
   jpa:
     open-in-view: false
     generate-ddl: false
+    properties:
+      hibernate:
+        xml_mapping_enabled: false
     hibernate:
       ddl-auto: none
 

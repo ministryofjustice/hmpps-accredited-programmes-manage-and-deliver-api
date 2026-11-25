@@ -17,6 +17,12 @@ app:
       shedlock:
         lock-most: PT1M # lock for max 1 minute
         lock-least: PT1M # lock at least for 1 minute
+    referral-names-updated:
+      cron: "0 0 1 * * *"  # every day at 1 AM
+      chunk-size: 100  # process referral records in chunks
+      shedlock:
+        lock-most: PT1M # lock for max 1 minute
+        lock-least: PT1M # lock at least for 1 minute
 
 spring:
   jpa:
@@ -42,12 +48,12 @@ hmpps:
         queueName: interventionseventtestqueue
         dlqName: interventionseventtestqueuedlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "accredited-programmes-community.referral.status-updated", "accredited-programmes-community.programme.complete" ]}'
+        subscribeFilter: '{"eventType":[ "accredited-programmes-community.referral.status-updated", "accredited-programmes-community.programme.complete", "accredited-programmes-community.programme.started" ]}'
       hmppsdomaineventsqueue:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed", "accredited-programmes-manage-and-deliver.referral.details-updated", "probation-case.sentence.deleted"] }'
+        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed", "accredited-programmes-manage-and-deliver.referral.details-updated", "accredited-programmes-manage-and-deliver.facilitator.names-updated", "probation-case.sentence.deleted"] }'
         asyncQueueClient: true
 
     topics:

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.stereotype.Repository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import java.time.LocalDate
@@ -12,6 +13,7 @@ import java.time.LocalDateTime
 import java.util.Optional
 import java.util.UUID
 
+@Repository
 interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   @Query("SELECT r FROM ReferralEntity r LEFT JOIN FETCH r.programmeGroupMemberships WHERE r.id = :id")
   fun findByIdWithMemberships(id: UUID): ReferralEntity?
@@ -47,8 +49,8 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
 
   fun findAllByUpdatedAtBefore(updatedAtBefore: LocalDateTime, pageable: Pageable): Page<ReferralEntity>
 
-  @Query("SELECT r.id FROM ReferralEntity r WHERE r.personSurname IS NULL")
-  fun findAllIdsWherePersonSurnameIsNull(): List<UUID>
+  @Query("SELECT r FROM ReferralEntity r WHERE r.personSurname IS NULL")
+  fun findAllWherePersonSurnameIsNull(pageable: Pageable): Page<ReferralEntity>
 
   @Query(
     value = """

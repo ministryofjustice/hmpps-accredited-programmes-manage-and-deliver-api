@@ -38,8 +38,8 @@ class ReferralDetailsUpdatedJob(
   @Scheduled(cron = "\${app.scheduling.referral-details-updated.cron}")
   @SchedulerLock(
     name = "referralDetailsUpdatedJob",
-    lockAtMostFor = $$"${app.scheduling.referral-details-updated.shedlock.lock-most:PT2H}",
-    lockAtLeastFor = $$"${app.scheduling.referral-details-updated.shedlock.lock-least:PT1H}",
+    lockAtMostFor = "\${app.scheduling.referral-details-updated.shedlock.lock-most:PT2H}",
+    lockAtLeastFor = "\${app.scheduling.referral-details-updated.shedlock.lock-least:PT1H}",
   )
   fun process() {
     val now = clock.instant()

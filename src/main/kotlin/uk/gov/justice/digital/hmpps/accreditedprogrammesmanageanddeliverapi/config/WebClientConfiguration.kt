@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.client.web.reactive.function.client.S
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.netty.http.client.HttpClient
-import uk.gov.justice.hmpps.kotlin.auth.ServletRequestResponseNonNullFilterFunction
 import uk.gov.justice.hmpps.kotlin.auth.healthWebClient
 import java.time.Duration
 
@@ -152,7 +151,6 @@ class WebClientConfiguration(
         it.defaultCodecs().maxInMemorySize(maxResponseInMemorySizeBytes)
       }.build(),
     )
-    .filter(ServletRequestResponseNonNullFilterFunction())
     .filter(oauth2Client)
     .build()
 }

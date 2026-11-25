@@ -1,8 +1,9 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
@@ -17,7 +18,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_STAFF_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import java.util.UUID
-import kotlin.collections.ifEmpty
 
 @Service
 @Transactional
@@ -35,56 +35,33 @@ class FacilitatorService(
     ?: facilitatorRepository.save(editSessionFacilitatorRequest.toFacilitatorEntity())
 
   /**
-   * Updates the personal names of facilitators in the system. If the provided list of facilitator IDs is empty,
-   * it retrieves all facilitator IDs with missing structured personal names from the repository.
    *
-   * @param facilitatorIds The list of facilitator IDs for which to update personal names.
-   *                       If the list is empty, IDs are fetched from the repository.
-   * @return A result object containing lists of IDs that were successfully updated, not found, or failed during the update process.
    */
-  suspend fun updateNameByFacilitatorIds(facilitatorIds: List<UUID>): RefreshPersonalDetailsResult {
-    log.debug(
-      "START update personal details for facilitators with missing structured personal names: {}",
-      facilitatorIds,
-    )
-    val successIds: MutableList<UUID> = mutableListOf()
-    val notFoundIds: MutableList<UUID> = mutableListOf()
-    val failureIds: MutableList<UUID> = mutableListOf()
+  fun findAllWherePersonSurnameIsNull(pageable: Pageable): Page<FacilitatorEntity> = facilitatorRepository.findAllWherePersonSurnameIsNull(pageable)
 
-    val idsToProcess = facilitatorIds.ifEmpty {
-      withContext(Dispatchers.IO) {
-        facilitatorRepository.findAllIdsWherePersonSurnameIsNull()
-      }
+  /**
+   * Updates the personal names of a facilitator in the system.
+   *
+   * @param facilitatorId The facilitator ID for which to update structured names.
+   */
+  fun updateNameByFacilitatorId(facilitatorId: UUID): FacilitatorEntity? {
+    log.debug("START update name for facilitator with id: {}", facilitatorId)
+
+    val facilitator = facilitatorRepository.findByIdOrNull(facilitatorId)
+    if (facilitator != null) {
+      val staffDto = getStaffByCode(facilitator.ndeliusPersonCode)
+      facilitator.personForename = staffDto.forename
+      facilitator.personSurname = staffDto.surname
+      facilitator.personMiddleNames = staffDto.middleNames
+      facilitatorRepository.save(facilitator)
+      log.info("[Facilitator of id $facilitatorId]...success!")
+    } else {
+      log.error("[Facilitator of id $facilitatorId] doesn't exists!")
     }
 
-    idsToProcess.forEachIndexed { index, id ->
-      log.info("[{}/{}] Refreshing Name for Facilitator with id {}...", index + 1, facilitatorIds.size, id)
-      try {
-        val optionalFacilitator = facilitatorRepository.findById(id)
-        if (optionalFacilitator.isPresent) {
-          val facilitator = optionalFacilitator.get()
-          val staffDto = getStaffByCode(facilitator.ndeliusPersonCode)
-          facilitator.personForename = staffDto.forename
-          facilitator.personSurname = staffDto.surname
-          facilitator.personMiddleNames = staffDto.middleNames
-          facilitatorRepository.save(facilitator)
-          log.info("[Facilitator of id $id]...success!")
-          successIds.add(id)
-        } else {
-          notFoundIds.add(id)
-        }
-      } catch (e: Exception) {
-        log.error("[Facilitator of id $id]...failure: ${e.message})")
-        failureIds.add(id)
-      }
-    }
-    log.debug("END update personal details for facilitators with missing structured personal names: {}", facilitatorIds)
+    log.debug("END update facilitator names for id: {}", facilitatorId)
 
-    return RefreshPersonalDetailsResult(
-      successIds,
-      notFoundIds,
-      failureIds,
-    )
+    return facilitator
   }
 
   private fun getStaffByCode(code: String): StaffDto = when (val response = nDeliusIntegrationApiClient.getStaffByCode(code)) {

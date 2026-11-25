@@ -179,6 +179,12 @@ class ReferralEntity(
   @Column(name = "updated_at")
   @LastModifiedDate
   var updatedAt: LocalDateTime = LocalDateTime.now(),
+
+  // The date and time of the first attended pre-group one-to-one session, used as the Actual Start Date
+  // for the requirement/licence condition in nDelius. Set once and never overwritten.
+  @Nullable
+  @Column(name = "actual_start_date")
+  var actualStartDate: LocalDateTime? = null,
 ) {
   @get:Transient
   val personName: String

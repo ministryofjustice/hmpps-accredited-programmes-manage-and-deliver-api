@@ -8,3 +8,4 @@ sealed class ReferralEvent(
 
 data class ReferralStatusUpdateEvent(override val referralId: UUID) : ReferralEvent(referralId)
 data class ReferralProgrammeCompleteEvent(override val referralId: UUID) : ReferralEvent(referralId)
+data class ReferralProgrammeStartedEvent(override val referralId: UUID) : ReferralEvent(referralId)

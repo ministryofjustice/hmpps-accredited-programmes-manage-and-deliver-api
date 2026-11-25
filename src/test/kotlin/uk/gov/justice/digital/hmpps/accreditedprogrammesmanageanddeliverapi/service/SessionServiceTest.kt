@@ -2086,6 +2086,275 @@ class SessionServiceTest {
   }
 
   @Test
+  fun `should check and publish programme started event when saving attendance on pre-group one-to-one session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
+    val preGroupModule = ModuleEntityFactory().withName("Pre-group one-to-ones").produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withModule(preGroupModule)
+        .withName("Pre-group one-to-one")
+        .produce()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsPlaceholder(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralStatusService.checkAndPublishProgrammeStartedEvent(any()) } returns true
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
+
+    // When
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    verify { referralStatusService.checkAndPublishProgrammeStartedEvent(referralId) }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = "RECORD_ATTENDANCE",
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
+    verify { userService.getUserByUsernameOrNull(any()) }
+  }
+
+  @Test
+  fun `should not check programme started event when saving attendance on non pre-group one-to-one session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
+    val regularModule = ModuleEntityFactory().withName("Module 1").produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(regularModule)
+        .withName("Getting started")
+        .produce()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsPlaceholder(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
+
+    // When
+    service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    verify(exactly = 0) { referralStatusService.checkAndPublishProgrammeStartedEvent(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = "RECORD_ATTENDANCE",
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
+    verify { userService.getUserByUsernameOrNull(any()) }
+  }
+
+  @Test
+  fun `should not check programme started event when saving attendance on placeholder pre-group one-to-one session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
+    val preGroupModule = ModuleEntityFactory().withName("Pre-group one-to-ones").produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withModule(preGroupModule)
+        .withName("Pre-group one-to-one")
+        .produce()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsPlaceholder(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
+
+    // When
+    service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    verify(exactly = 0) { referralStatusService.checkAndPublishProgrammeStartedEvent(any()) }
+    verify(exactly = 0) {
+      telemetryService.logToAppInsights(
+        eventName = any(),
+        integrationActionType = any(),
+        outcome = any(),
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
+    verify { userService.getUserByUsernameOrNull(any()) }
+  }
+
+  @Test
+  fun `should not fail attendance save when programme started event check throws after nDelius update`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Pre-group one-to-ones")
+
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
+        .produce()
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+    val user = UserFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralStatusService.checkAndPublishProgrammeStartedEvent(any()) } throws RuntimeException("event failure")
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
+
+    // When
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    verify { referralStatusService.checkAndPublishProgrammeStartedEvent(referralId) }
+    verify { userService.getUserByUsernameOrNull(any()) }
+  }
+
+  @Test
   fun `should check completion event for each attendee when saving attendance on post-programme review session`() {
     // Given
     val sessionId = UUID.randomUUID()

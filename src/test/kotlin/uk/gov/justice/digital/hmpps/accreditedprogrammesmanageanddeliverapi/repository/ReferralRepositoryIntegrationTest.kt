@@ -7,6 +7,8 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -143,13 +145,14 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
 
     referralRepository.save(referralWithNullSurname)
     referralRepository.save(referralWithSurname)
+    val pageable: Pageable = PageRequest.of(0, 100)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull()
+    val result = referralRepository.findAllWherePersonSurnameIsNull(pageable)
 
     // Then
     assertThat(result).hasSize(1)
-    assertThat(result).containsExactly(referralWithNullSurname.id)
+    assertThat(result.content).containsExactly(referralWithNullSurname)
   }
 
   @Test
@@ -165,9 +168,10 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
 
     referralRepository.save(referralWithSurname1)
     referralRepository.save(referralWithSurname2)
+    val pageable: Pageable = PageRequest.of(0, 100)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull()
+    val result = referralRepository.findAllWherePersonSurnameIsNull(pageable)
 
     // Then
     assertThat(result).isEmpty()
@@ -186,12 +190,13 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
 
     referralRepository.save(referralWithNullSurname1)
     referralRepository.save(referralWithNullSurname2)
+    val pageable: Pageable = PageRequest.of(0, 100)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull()
+    val result = referralRepository.findAllWherePersonSurnameIsNull(pageable)
 
     // Then
-    assertThat(result).hasSize(2)
-    assertThat(result).containsExactlyInAnyOrder(referralWithNullSurname1.id, referralWithNullSurname2.id)
+    assertThat(result.content).hasSize(2)
+    assertThat(result.content).containsExactlyInAnyOrder(referralWithNullSurname1, referralWithNullSurname2)
   }
 }

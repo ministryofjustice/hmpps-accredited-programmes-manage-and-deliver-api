@@ -32,6 +32,10 @@ Most software can be installed using [homebrew](https://brew.sh/).
 - **Build**: Gradle
 - **Containerization**: Docker
 
+Hibernate uses annotation-only mappings; XML mappings are disabled and the JAXB runtime is excluded
+because of CVE-2026-92877. Adding XML mappings or JAXB processing requires reassessing this exclusion
+and using a patched JAXB release.
+
 ## Running the application locally
 
 The application comes with a `local` spring profile that includes default settings for running locally. This is not

@@ -11,6 +11,7 @@ import org.awaitility.kotlin.withPollDelay
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
@@ -20,8 +21,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_FACILITATOR_NAMES_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.MessageHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -29,9 +32,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.StaffDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -50,6 +55,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  lateinit var facilitatorRepository: FacilitatorRepository
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -1047,5 +1055,66 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     // Then
     assertThat(result).isEmpty()
     assertThat(resultMessageHistoryList).isEmpty()
+  }
+
+  @Test
+  fun `should update facilitator names on receipt of ACP M&D facilitator names updated message`() {
+    // Given
+    val code = "CODE1"
+    val facilitatorEntity = FacilitatorEntityFactory()
+      .withNdeliusPersonCode(code)
+      .produce()
+
+    val savedFacilitator = testDataGenerator.createFacilitator(facilitatorEntity)
+    val id = savedFacilitator.id!!
+    val staffDto = StaffDtoFactory().produce()
+
+    nDeliusApiStubs.stubStaffResponse(code, staffDto)
+
+    val eventType = ACP_M_AND_D_FACILITATOR_NAMES_UPDATED.value
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(mapOf("facilitatorId" to id.toString()))
+      .withEventType(eventType)
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("N_DELIUS_PERSON_CODE", code))))
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+
+    await untilCallTo {
+      facilitatorRepository.findByIdOrNull(id)
+    } matches {
+      it != null &&
+        it.personForename == staffDto.forename &&
+        it.personSurname == staffDto.surname &&
+        it.personMiddleNames == staffDto.middleNames
+    }
+
+    val result = facilitatorRepository.findByIdOrNull(id)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result?.personForename).isEqualTo(staffDto.forename)
+    assertThat(result?.personSurname).isEqualTo(staffDto.surname)
+    assertThat(result?.personMiddleNames).isEqualTo(staffDto.middleNames)
   }
 }
