@@ -2105,7 +2105,8 @@ class SessionServiceTest {
         .withModule(preGroupModule)
         .withName("Pre-group one-to-one")
         .produce()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val referralEntity =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity =
       SessionFactory()
         .withAttendees(
@@ -2181,7 +2182,8 @@ class SessionServiceTest {
         .withModule(regularModule)
         .withName("Getting started")
         .produce()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val referralEntity =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity =
       SessionFactory()
         .withAttendees(
@@ -2255,7 +2257,8 @@ class SessionServiceTest {
         .withModule(preGroupModule)
         .withName("Pre-group one-to-one")
         .produce()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val referralEntity =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity =
       SessionFactory()
         .withAttendees(
@@ -2321,7 +2324,8 @@ class SessionServiceTest {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId = UUID.randomUUID()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val referralEntity =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Pre-group one-to-ones")
 
     val sessionAttendance =
