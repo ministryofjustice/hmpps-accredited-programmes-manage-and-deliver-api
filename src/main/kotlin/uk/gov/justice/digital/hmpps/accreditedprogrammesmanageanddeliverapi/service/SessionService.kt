@@ -593,7 +593,10 @@ class SessionService(
         try {
           referralStatusService.checkAndPublishProgrammeStartedEvent(attendee.referralId)
         } catch (e: Exception) {
-          log.error("Failed to check and publish programme started event for referral with id: ${attendee.referralId}", e)
+          log.error(
+            "Failed to check and publish programme started event for referral with id: ${attendee.referralId}",
+            e,
+          )
         }
       }
     }
@@ -867,28 +870,15 @@ class SessionService(
     if (updateNonMissingAppointmentRequestList.isNotEmpty()) {
       when (
         val response =
-          nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateNonMissingAppointmentRequestList))
+          nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+            UpdateAppointmentsRequest(updateNonMissingAppointmentRequestList),
+          )
       ) {
         is ClientResult.Failure ->
           handleUpdateAppointmentResponseError(
             errorMessage = response.getErrorMessage(),
             exception = response.toException(),
           )
-    if (updateNonMissingAppointmentRequestList.isEmpty()) return
-
-    when (
-      val response =
-        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
-          UpdateAppointmentsRequest(
-            updateNonMissingAppointmentRequestList,
-          ),
-        )
-    ) {
-      is ClientResult.Failure ->
-        handleUpdateAppointmentResponseError(
-          errorMessage = response.getErrorMessage(),
-          exception = response.toException(),
-        )
 
         is ClientResult.Success ->
           handleUpdateAppointmentResponseSuccess(

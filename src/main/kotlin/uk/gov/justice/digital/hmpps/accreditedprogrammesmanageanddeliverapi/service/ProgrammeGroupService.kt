@@ -44,8 +44,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -553,7 +551,10 @@ class ProgrammeGroupService(
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = session.id!!,
             number = session.sessionNumber,
-            name = sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(session.moduleSessionTemplate)),
+            name = sessionNameFormatter.format(
+              session,
+              SessionNameContext.SessionsAndAttendance(session.moduleSessionTemplate),
+            ),
             type = session.sessionType.value,
             isCatchup = session.isCatchup,
             dateOfSession = session.startsAt.toLocalDate(),
@@ -583,7 +584,10 @@ class ProgrammeGroupService(
       )
     }
 
-    return ProgrammeGroupModuleSessionsResponse(ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName), modules)
+    return ProgrammeGroupModuleSessionsResponse(
+      ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName),
+      modules,
+    )
   }
 
   fun getEditCohortForGroup(groupId: UUID): EditGroupCohort {
