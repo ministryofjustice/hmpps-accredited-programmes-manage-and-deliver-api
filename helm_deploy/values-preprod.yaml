@@ -20,6 +20,7 @@ generic-service:
     SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
     SERVICES_PROBATION-ACCESS-CONTROL-API_BASE-URL: "https://probation-access-control-preprod.hmpps.service.justice.gov.uk"
     SENTRY_ENVIRONMENT: preprod
+    REPORTING_ENABLED: "true"
     REFERRAL_DETAILS_UPDATED_CRON: "0 0 8 * * *"  # 8 AM every day
     REFERRAL_NAMES_UPDATED_CRON: "0 0 9 * * *"  # 9 AM every day
     FACILITATOR_NAMES_UPDATED_CRON: "0 0 10 * * *"  # 10 AM every day
