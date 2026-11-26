@@ -42,6 +42,7 @@ class FacilitatorNamesUpdatedJob(
     val now = clock.instant()
     log.info("Facilitator names updated job started, at: $now")
     var totalUpdated = 0
+    var totalFailed = 0
     var currentPage = 1
     var hasMoreRecords = true
 
@@ -58,6 +59,7 @@ class FacilitatorNamesUpdatedJob(
           publishEvent(message, facilitatorId)
           totalUpdated++
         } catch (exception: Exception) {
+          totalFailed++
           log.error(
             "Failed to publish event updating facilitator names for facilitatorId: $facilitatorId, skipping and continuing",
             exception,
@@ -71,7 +73,7 @@ class FacilitatorNamesUpdatedJob(
 
     val endTime = clock.instant()
     log.info(
-      "Facilitator names updated Job completed: updates sent: $totalUpdated, time took: ${
+      "Facilitator names updated job completed: updates sent: $totalUpdated, $totalFailed failed, time took: ${
         Duration.between(
           now,
           endTime,
