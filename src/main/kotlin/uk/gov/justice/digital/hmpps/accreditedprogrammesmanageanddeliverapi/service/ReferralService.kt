@@ -46,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.FeatureFlag.REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
@@ -105,6 +106,7 @@ class ReferralService(
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val userAccessService: UserAccessService,
+  private val featureFlagService: FeatureFlagService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -148,6 +150,29 @@ class ReferralService(
       null
     }
 
+    // The referral's location comes from the manager of the requirement or licence condition it was created for,
+    // falling back to the probation practitioner's location from the personal details
+    val requirementOrLicenceConditionManagerDeferred = if (featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)) {
+      async(Dispatchers.IO) {
+        try {
+          val eventId = checkNotNull(referral.eventId) { "Referral has no requirement or licence condition id" }
+          val response = when (checkNotNull(referral.sourcedFrom) { "Referral has no sourcedFrom" }) {
+            ReferralEntitySourcedFrom.REQUIREMENT -> nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, eventId)
+            ReferralEntitySourcedFrom.LICENCE_CONDITION -> nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)
+          }
+          when (response) {
+            is ClientResult.Success -> response.body.manager
+            is ClientResult.Failure -> response.throwException()
+          }
+        } catch (ex: Exception) {
+          log.warn("Failed to fetch the requirement or licence condition manager for referral ${referral.id}, using the probation practitioner's location instead: ${ex.message}")
+          null
+        }
+      }
+    } else {
+      null
+    }
+
     val pniScore = pniDeferred?.await()
     if (pniScore != null) {
       if (!ldcOverridden) {
@@ -180,9 +205,10 @@ class ReferralService(
 
     val personalDetails = personalDetailsDeferred.await()
     val sentenceEndDateDetails = sentenceEndDateDeferred.await()
+    val requirementOrLicenceConditionManager = requirementOrLicenceConditionManagerDeferred?.await()
 
     if (personalDetails != null) {
-      updateReferralDetails(referral, personalDetails, sentenceEndDateDetails)
+      updateReferralDetails(referral, personalDetails, requirementOrLicenceConditionManager, sentenceEndDateDetails)
     } else {
       // If we at least have a sentence end date but no personal details, update just the sentence
       if (sentenceEndDateDetails != null &&
@@ -312,11 +338,33 @@ class ReferralService(
     referralEntity.referralLdcHistories = referralLdcHistories
 
     personalDetails?.let {
+      // The referral's location comes from the manager of the requirement or licence condition it was created for,
+      // falling back to the probation practitioner's location from the personal details if we can't get the manager
+      val requirementOrLicenceConditionManager = if (featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)) {
+        try {
+          val crn = findAndReferReferralDetails.personReference
+          val eventId = findAndReferReferralDetails.sourcedFromReference
+          val response = when (findAndReferReferralDetails.sourcedFromReferenceType) {
+            ReferralEntitySourcedFrom.REQUIREMENT -> nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, eventId)
+            ReferralEntitySourcedFrom.LICENCE_CONDITION -> nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(crn, eventId)
+          }
+          when (response) {
+            is ClientResult.Success -> response.body.manager
+            is ClientResult.Failure -> response.throwException()
+          }
+        } catch (ex: Exception) {
+          log.warn("Failed to fetch the requirement or licence condition manager for referral ${referral.id}, using the probation practitioner's location instead: ${ex.message}")
+          null
+        }
+      } else {
+        null
+      }
+
       val referralReportingLocation = ReferralReportingLocationEntity(
         referral = referral,
-        pduName = personalDetails.probationDeliveryUnit.description,
-        reportingTeam = personalDetails.team.description,
-        regionName = personalDetails.region.description,
+        pduName = requirementOrLicenceConditionManager?.probationDeliveryUnit?.description ?: personalDetails.probationDeliveryUnit.description,
+        reportingTeam = requirementOrLicenceConditionManager?.team?.description ?: personalDetails.team.description,
+        regionName = requirementOrLicenceConditionManager?.region?.description ?: personalDetails.region.description,
       )
       referralReportingLocationRepository.save(referralReportingLocation)
       referralEntity.referralReportingLocation = referralReportingLocation
@@ -692,20 +740,25 @@ class ReferralService(
   private fun updateReferralDetails(
     referral: ReferralEntity,
     personalDetails: NDeliusPersonalDetails,
+    requirementOrLicenceConditionManager: RequirementOrLicenceConditionManager?,
     sentenceEndDateDetails: SentenceEndDateDetails?,
   ) {
+    val pduDescription = requirementOrLicenceConditionManager?.probationDeliveryUnit?.description ?: personalDetails.probationDeliveryUnit.description
+    val teamDescription = requirementOrLicenceConditionManager?.team?.description ?: personalDetails.team.description
+    val regionDescription = requirementOrLicenceConditionManager?.region?.description ?: personalDetails.region.description
+
     // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
       ?.apply {
-        pduName = personalDetails.probationDeliveryUnit.description
-        reportingTeam = personalDetails.team.description
-        regionName = personalDetails.region.description
+        pduName = pduDescription
+        reportingTeam = teamDescription
+        regionName = regionDescription
       }
       ?: ReferralReportingLocationEntity(
         referral = referral,
-        pduName = personalDetails.probationDeliveryUnit.description,
-        reportingTeam = personalDetails.team.description,
-        regionName = personalDetails.region.description,
+        pduName = pduDescription,
+        reportingTeam = teamDescription,
+        regionName = regionDescription,
       )
 
     val savedEntity = referralReportingLocationRepository.save(referralReportingLocation)

@@ -31,6 +31,11 @@ dependencies {
   implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
   implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedLockVersion")
 
+  // Feature flags, served by https://github.com/ministryofjustice/hmpps-feature-flags
+  implementation("io.flipt:flipt-client-java:1.4.0") {
+    exclude(group = "com.fasterxml.jackson.dataformat", module = "jackson-dataformat-xml")
+  }
+
   // Seeding
   implementation("net.datafaker:datafaker:2.7.0")
 

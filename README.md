@@ -334,6 +334,20 @@ Configuration is provided via environment variables and spring configuration fil
 - **OAuth**: Client credentials for HMPPS Auth integration
 - **API clients**: Configuration for downstream API calls
 
+### Feature flags
+
+Feature flags live in [hmpps-feature-flags](https://github.com/ministryofjustice/hmpps-feature-flags) (Flipt), in the
+`accredited-programmes-community` namespace, with a separate set of flags per environment in
+`flags/<env>/accredited-programmes-community/features.yml`. Dev and preprod flags can be changed in the Flipt UI, prod
+flags only by a PR to that repo.
+
+- The app reads flags from the Flipt instance in `FLIPT_URL`, set in `helm_deploy/values-<env>.yaml`. Without it,
+  when running locally and in tests, every flag is disabled. To use the dev flags locally, set `FLIPT_URL` to
+  `https://feature-toggles-dev.hmpps.service.justice.gov.uk`.
+- A flag that can't be evaluated, including one that doesn't exist in that environment, is treated as disabled.
+- Flags are listed in `FeatureFlag` and checked with `FeatureFlagService.isEnabled`. In integration tests, turn one on
+  with `whenever(featureFlagService.isEnabled(FLAG)).thenReturn(true)`.
+
 ### Subject Access Request (SAR) template versioning
 
 The SAR report is rendered from a versioned Mustache template under

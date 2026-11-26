@@ -16,6 +16,8 @@ class NDeliusCaseRequirementOrLicenceConditionResponseFactory {
   private var teamDescription: String = "Test Team"
   private var pduCode: String = "PDU001"
   private var pduDescription: String = "Test PDU"
+  private var regionCode: String = "REGION001"
+  private var regionDescription: String = "Test Region"
   private var officeLocations: List<CodeDescription> = emptyList()
   private var probationDeliveryUnits: List<NDeliusApiProbationDeliveryUnitWithOfficeLocations> = emptyList()
 
@@ -30,6 +32,10 @@ class NDeliusCaseRequirementOrLicenceConditionResponseFactory {
     this.pduCode = code
     this.pduDescription = description
   }
+  fun withRegion(code: String, description: String) = apply {
+    this.regionCode = code
+    this.regionDescription = description
+  }
   fun withOfficeLocations(officeLocations: List<CodeDescription>) = apply { this.officeLocations = officeLocations }
 
   fun produce() = NDeliusCaseRequirementOrLicenceConditionResponse(
@@ -38,6 +44,7 @@ class NDeliusCaseRequirementOrLicenceConditionResponseFactory {
       staff = RequirementStaff(code = staffCode, name = staffName),
       team = CodeDescription(teamCode, teamDescription),
       probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(pduCode, pduDescription),
+      region = CodeDescription(regionCode, regionDescription),
       officeLocations = officeLocations,
     ),
     probationDeliveryUnits = probationDeliveryUnits,

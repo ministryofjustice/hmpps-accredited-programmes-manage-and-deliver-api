@@ -19,6 +19,7 @@ generic-service:
     SERVICES_ASSESS-RISKS-AND-NEEDS-API_BASE-URL: "https://assess-risks-and-needs-preprod.hmpps.service.justice.gov.uk"
     SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
     SERVICES_PROBATION-ACCESS-CONTROL-API_BASE-URL: "https://probation-access-control-preprod.hmpps.service.justice.gov.uk"
+    FLIPT_URL: "https://feature-toggles-preprod.hmpps.service.justice.gov.uk"
     SENTRY_ENVIRONMENT: preprod
     REFERRAL_DETAILS_UPDATED_CRON: "0 0 8 * * *"  # 8 AM every day
     REFERRAL_NAMES_UPDATED_CRON: "0 0 9 * * *"  # 9 AM every day
