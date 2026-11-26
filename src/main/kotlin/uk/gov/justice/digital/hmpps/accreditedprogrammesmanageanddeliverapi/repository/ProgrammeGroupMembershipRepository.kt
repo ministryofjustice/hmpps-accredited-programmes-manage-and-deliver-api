@@ -70,4 +70,26 @@ interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembe
     """,
   )
   fun findAllByReferralIdWithAttendances(referralId: UUID): List<ProgrammeGroupMembershipEntity>
+
+  /**
+   * Every group each referral has been assigned to, including groups they have since left, in the order they joined.
+   */
+  @Query(
+    value = """
+      SELECT gm.referral_id AS referralId,
+             pg.code AS groupCode
+      FROM programme_group_membership gm
+      JOIN programme_group pg ON pg.id = gm.programme_group_id
+      WHERE gm.referral_id IN (:referralIds)
+      GROUP BY gm.referral_id, pg.id, pg.code
+      ORDER BY MIN(gm.created_at), pg.code
+      """,
+    nativeQuery = true,
+  )
+  fun getDosageGroupCodes(referralIds: Collection<UUID>): List<DosageGroupCodeProjection>
+}
+
+interface DosageGroupCodeProjection {
+  val referralId: UUID
+  val groupCode: String
 }
