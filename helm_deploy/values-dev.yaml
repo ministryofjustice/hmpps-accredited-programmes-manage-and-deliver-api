@@ -29,4 +29,9 @@ generic-service:
     # change (agreed with the SAR team) is shipped into V2.
     HMPPS_SAR_TEMPLATE_PATH: "/sar/templates/V2__sar_template.mustache"
 
+  scheduledDowntime:
+    enabled: true
+    startupOverride: '30 6 * * 1-5' # Start at 6.30am UTC Monday-Friday
+    shutdown: '30 21 * * 1-5' # Stop at 9.30pm UTC Monday-Friday
+    timeZone: Etc/UTC
 dataRefreshEnabled: false
