@@ -18,19 +18,15 @@ class FacilitatorEntity(
   @Column(name = "id")
   var id: UUID? = null,
 
-  @NotNull
-  @Column(name = "person_name")
-  var personName: String,
-
-  @param:Nullable
+  @Nullable
   @Column(name = "person_forename")
   var personForename: String? = null,
 
-  @param:Nullable
+  @Nullable
   @Column(name = "person_middle_names")
   var personMiddleNames: String? = null,
 
-  @param:Nullable
+  @Nullable
   @Column(name = "person_surname")
   var personSurname: String? = null,
 
@@ -48,7 +44,6 @@ class FacilitatorEntity(
 )
 
 fun CreateGroupTeamMember.toFacilitatorEntity(): FacilitatorEntity = FacilitatorEntity(
-  personName = facilitator,
   personForename = facilitatorForename,
   personMiddleNames = facilitatorMiddleNames,
   personSurname = facilitatorSurname,

@@ -117,7 +117,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -152,7 +152,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withIsCatchup(true)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -190,7 +190,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -225,7 +225,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withIsCatchup(true)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -478,7 +478,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -574,7 +574,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withIsCatchup(true)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -797,7 +797,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -862,7 +862,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withIsCatchup(true)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -960,7 +960,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -995,7 +995,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .withIsCatchup(true)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)
@@ -1310,7 +1310,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
         sessionNumber = 2,
         templateName = "Getting started one-to-one",
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(personForename = "Alex", personSurname = "River", crn = "X123456")
       val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
       session.attendees.add(attendee)
       sessionRepository.save(session)

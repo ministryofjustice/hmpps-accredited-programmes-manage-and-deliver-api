@@ -77,13 +77,15 @@ class CreateAppointmentRequestTest {
   fun `toAppointment should select regular facilitators deterministically by name`() {
     // Given
     val coverFacilitator = FacilitatorEntityFactory()
-      .withPersonName("Aaron Cover")
+      .withPersonForename("Aaron")
+      .withPersonSurname("Cover")
       .withNdeliusPersonCode("COVER")
       .withNdeliusTeamCode("COVER_TEAM")
       .produce()
-    val laterRegular = FacilitatorEntityFactory().withPersonName("Zoe Regular").produce()
+    val laterRegular = FacilitatorEntityFactory().withPersonForename("Zoe").withPersonSurname("Regular").produce()
     val earlierRegular = FacilitatorEntityFactory()
-      .withPersonName("Bilal Regular")
+      .withPersonForename("Bilal")
+      .withPersonSurname("Regular")
       .withNdeliusPersonCode("REG")
       .withNdeliusTeamCode("REG_TEAM")
       .produce()
@@ -126,7 +128,8 @@ class CreateAppointmentRequestTest {
   @Test
   fun `toAppointment should include treatment manager name in notes`() {
     // Given
-    val treatmentManager = FacilitatorEntityFactory().withPersonName("Treatment Manager Name").produce()
+    val treatmentManager =
+      FacilitatorEntityFactory().withPersonForename("Treatment").withPersonSurname("Manager Name").produce()
     val session = buildSession(
       facilitators = listOf(FacilitatorEntityFactory().produce()),
       treatmentManager = treatmentManager,
@@ -154,10 +157,14 @@ class CreateAppointmentRequestTest {
   @Test
   fun `toAppointment should include createdBy, session info and additional facilitator names in notes`() {
     // Given
-    val primaryFacilitator = FacilitatorEntityFactory().withPersonName("Primary Facilitator").produce()
-    val secondFacilitator = FacilitatorEntityFactory().withPersonName("Second Facilitator").produce()
-    val thirdFacilitator = FacilitatorEntityFactory().withPersonName("Third Facilitator").produce()
-    val treatmentManager = FacilitatorEntityFactory().withPersonName("Treatment Manager Name").produce()
+    val primaryFacilitator =
+      FacilitatorEntityFactory().withPersonForename("Primary").withPersonSurname("Facilitator").produce()
+    val secondFacilitator =
+      FacilitatorEntityFactory().withPersonForename("Second").withPersonSurname("Facilitator").produce()
+    val thirdFacilitator =
+      FacilitatorEntityFactory().withPersonForename("Third").withPersonSurname("Facilitator").produce()
+    val treatmentManager =
+      FacilitatorEntityFactory().withPersonForename("Treatment").withPersonSurname("Manager Name").produce()
     val session = buildSession(
       facilitators = listOf(primaryFacilitator, secondFacilitator, thirdFacilitator),
       treatmentManager = treatmentManager,
@@ -276,7 +283,8 @@ class CreateAppointmentRequestTest {
     val session = buildSession(moduleName = "Getting started", sessionType = SessionType.ONE_TO_ONE)
     val attendee = AttendeeFactory()
       .withReferral(
-        ReferralEntityFactory().withSourcedFrom(REQUIREMENT).withPersonName("Alex River").produce(),
+        ReferralEntityFactory().withSourcedFrom(REQUIREMENT).withPersonForename("Alex").withPersonSurname("River")
+          .produce(),
       )
       .withSession(session)
       .produce()
@@ -311,7 +319,7 @@ class CreateAppointmentRequestTest {
     assertThat(result.outcome).isEqualTo(outcome)
     assertThat(result.notes).isEqualToIgnoringWhitespace(
       "(Prog ID: AAA111, Type: main, Session: Module Session Template 1)\n" +
-        "Treatment Manager: ${session.programmeGroup.treatmentManager?.personName}\n" +
+        "Treatment Manager: ${session.programmeGroup.treatmentManager?.personForename} ${session.programmeGroup.treatmentManager?.personSurname}\n" +
         "Notes: Custom notes",
     )
     assertThat(result.reference).isEqualTo(nDeliusAppointmentEntity.ndeliusAppointmentId)
@@ -322,7 +330,8 @@ class CreateAppointmentRequestTest {
     // Given
     val session = buildSession(
       facilitators = listOf(FacilitatorEntityFactory().produce()),
-      treatmentManager = FacilitatorEntityFactory().withPersonName("Treatment Manager Name").produce(),
+      treatmentManager = FacilitatorEntityFactory().withPersonForename("Treatment Manager").withPersonSurname("Name")
+        .produce(),
     )
     val referral = ReferralEntityFactory().withSourcedFrom(REQUIREMENT).produce()
     val nDeliusAppointmentEntity = NDeliusAppointmentEntity(

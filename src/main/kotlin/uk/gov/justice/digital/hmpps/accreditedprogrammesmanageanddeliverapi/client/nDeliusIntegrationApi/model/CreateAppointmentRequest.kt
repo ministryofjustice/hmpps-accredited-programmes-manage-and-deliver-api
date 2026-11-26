@@ -70,7 +70,7 @@ private fun buildNDeliusAppointment(
   val primaryFacilitator = session.primaryFacilitator()
   val additionalFacilitators = session.sessionFacilitators
     .filter { it.facilitatorCode != primaryFacilitator.ndeliusPersonCode }
-    .sortedBy { it.facilitator.personName }
+    .sortedBy { it.facilitator.personSurname }
 
   return CreateAppointmentRequest.NdeliusAppointment(
     reference = nDeliusAppointmentId,
@@ -103,9 +103,9 @@ private fun buildSessionNotes(
 ): String? {
   val parts = mutableListOf<String>()
   parts.add(getSessionPart(session))
-  treatmentManager?.let { parts.add("Treatment Manager: ${it.personName}") }
+  treatmentManager?.let { parts.add("Treatment Manager: ${it.personForename} ${it.personSurname}") }
   if (additionalFacilitators.isNotEmpty()) {
-    parts.add("Additional Facilitators: ${additionalFacilitators.joinToString(", ") { it.facilitator.personName }}")
+    parts.add("Additional Facilitators: ${additionalFacilitators.joinToString(", ") { it.facilitator.personForename + " " + it.facilitator.personSurname }}")
   }
   if (notes != null) {
     parts.add("Notes: $notes")

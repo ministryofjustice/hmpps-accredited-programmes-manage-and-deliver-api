@@ -7,5 +7,5 @@ data class SubjectAccessRequestFacilitator(
 )
 
 fun FacilitatorEntity.toApi() = SubjectAccessRequestFacilitator(
-  personName = personName,
+  personName = "$personForename $personSurname",
 )
